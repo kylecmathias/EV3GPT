@@ -1,0 +1,120 @@
+#ifndef CONNECTION_H
+#define CONNECTION_H
+
+#include "config.h"
+
+#if defined(_MSC_VER)
+#define nopad
+#define ssize_t SSIZE_T
+#define MSG_DONTWAIT 0
+#else
+#define nopad __attribute__((packed))
+#endif /* #if defined(_MSC_VER) */
+
+#if !defined(TOPPERS_CFG1_OUT) && !defined(TOPPERS_MACRO_ONLY)
+#if defined(_MSC_VER)
+#include <winsock2.h>
+#include <WS2tcpip.h>
+#elif defined(__linux__)
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#else
+#define AF_INET 2
+#define SOCK_DGRAM 2
+#define MSG_DONTWAIT 0x40
+
+typedef uint32_t socklen_t;
+
+struct in_addr { uint32_t s_addr; };
+struct sockaddr_in {
+    uint16_t sin_family;
+    uint16_t sin_port;
+    struct in_addr sin_addr;
+    char sin_zero[8];
+};
+struct sockaddr {
+    uint16_t sa_family;
+    char sa_data[14];
+};
+
+extern ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *addrlen);
+
+#endif /* #if defined(_MSC_VER) */
+#endif /* #if !defined(TOPPERS_CFG1_OUT) && !defined(TOPPERS_MACRO_ONLY) */
+
+#define PAYLOAD_SIZE 8 //excludes crc
+#define CRC_INIT 0x00
+#define CONNECT_TIMEOUT 30U
+#define GYRO_FP 16 //2^4
+#define MOTOR_A 0
+#define MOTOR_B 1
+#define MOTOR_C 2
+#define MOTOR_D 3
+#define PORT_SHIFT 6
+#define MTR_SHIFT 3
+#define GYRO_SHIFT 1
+#define UNIT_SHIFT 1
+#define PORT_MASK 0x78U //0b0111 1000 
+#define UNIT_MASK 0x06U //0b0000 0110
+#define GYRO_MASK 0x06U //0b0000 0110
+#define SYNC_MASK 0x01U //0b0000 0001
+
+#define MOTOR_A_MASK 0x40U //0b0100 0000
+#define MOTOR_B_MASK 0x20U //0b0010 0000
+#define MOTOR_C_MASK 0x10U //0b0001 0000
+#define MOTOR_D_MASK 0x08U //0b0000 1000
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* #ifdef __cplusplus */
+
+#ifdef _MSC_VER
+#pragma pack(push, 1)
+#endif /* #ifdef _MSC_VER */
+typedef struct nopad { //structure to hold packets for sensor data without padding
+    uint8_t header;
+    uint8_t ultrasonic;
+    uint8_t color;
+    int16_t gyro; //12/4 fixed point, big endian
+    uint8_t ir_prox;
+    int8_t ir_angle;
+    uint8_t timestamp;
+    uint8_t crc;
+} SensorPacket;
+
+typedef struct nopad { //structure to hold packets for motor data received
+    uint8_t header;
+    int8_t motor_a;
+    int8_t motor_b;
+    int8_t motor_c;
+    int8_t motor_d;
+    uint16_t duration; //big endian
+    uint8_t stop;
+    uint8_t crc;
+} MotorPacket;
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif /* #ifdef _MSC_VER */
+
+typedef struct MotorCommand {
+    uint8_t unit;
+    bool sync;
+    uint8_t ports; //which ports to run 0bxxxxABCD
+    int8_t speeds[4]; //speeds for motors A, B, C, D
+    uint16_t duration; //duration for the motor command in milliseconds
+    uint8_t stop; //0 for coast, 1 for brake, 2 for hold
+} MotorCommand; //structure to hold motor commands for sending
+
+uint8_t crc8(const uint8_t *data, size_t len); //calculate crc8 checksum for data
+void pack_sensor_data(SensorPacket *packet, float gyro); //pack sensor data into a packet for sending
+bool receive_motor_packet(int sockfd, MotorCommand *command); //receive packet with motor data
+MotorCommand unpack_motor_data(const MotorPacket *packet); //unpack motor data from a received packet and return an array of motor speeds and duration
+void send_sensor_packet(int sockfd, const SensorPacket *packet, struct sockaddr_in *dest_addr); //send sensor packet to jetson
+int init_connection(struct sockaddr_in *dest_addr, const char *ip, uint16_t port); //open a connection with the jetson
+
+#ifdef __cplusplus
+} // extern "C"
+#endif /* #ifdef __cplusplus */
+
+#endif /* #ifndef CONNECTION_H */ 

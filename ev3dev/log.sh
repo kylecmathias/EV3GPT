@@ -1,0 +1,1 @@
+ssh -i ~/ev3key robot@10.100.5.19 "cat /home/robot/ev3.err.log"
