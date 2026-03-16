@@ -2,21 +2,27 @@
 
 int connect(const int sockfd) {
     std::cout << "Connecting to jetson" << std::endl;
+
     MotorCommand handshake;
     struct timespec start, current;
+
     clock_gettime(CLOCK_MONOTONIC, &start);
+
     while (!receive_motor_packet(sockfd, &handshake)) {
         clock_gettime(CLOCK_MONOTONIC, &current);
-        double elapsed = (current.tv_sec - start.tv_sec) + (current.tv_nsec - start.tv_nsec) / 1e9;
-        if (elapsed > CONNECT_TIMEOUT) return -1;
-        usleep(100000);
+
+        double elapsed = (current.tv_sec - start.tv_sec) + (current.tv_nsec - start.tv_nsec) / DIV_NS;
+        if (elapsed > CONNECT_TIMEOUT) return CONNECT_FAIL;
+        
+        usleep(THREAD_SLEEP_U);
     }
+
     std::cout << "Connected to jetson" << std::endl;
-    return 1;
+
+    return CONNECT_SUCCESS;
 }
 
 int main() {
-    printf("CRITICAL DEBUG: MotorPacket size is %zu bytes\n", sizeof(MotorPacket));
     Robot ev3;
     ev3.initSensor(COLOR, SensorModes::Color);
     ev3.initSensor(GYRO, SensorModes::Gyro);
@@ -24,7 +30,7 @@ int main() {
     ev3.initSensor(INFRARED, SensorModes::Infrared);
 
     struct sockaddr_in jetson_addr;
-    int sockfd = init_connection(&jetson_addr, JETSON_ADDRESS, JETSON_PORT);
+    int sockfd = init_connection(&jetson_addr, JETSON_ADDRESS, RECV_PORT);
 
     if (connect(sockfd) == -1) throw std::runtime_error("Connection to jetson timed out");
 

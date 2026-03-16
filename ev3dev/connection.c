@@ -22,24 +22,22 @@ void pack_sensor_data(SensorPacket *packet, float gyro) {
 
 bool receive_motor_packet(int sockfd, MotorCommand *command) {
     MotorPacket packet;
-    struct sockaddr_in send_addr;
-    socklen_t slen = sizeof(send_addr);
 
-    ssize_t recv_len = recvfrom(sockfd, &packet, sizeof(MotorPacket), MSG_DONTWAIT, (struct sockaddr *)&send_addr, &slen);
+    struct sockaddr_in jetson_addr;
+    memset(&jetson_addr, 0, sizeof(jetson_addr));
 
-    if (recv_len > 0) {
-        uint8_t calculated_crc = crc8((uint8_t *)&packet, PAYLOAD_SIZE);
-        printf("RECV: len=%ld, head=0x%02X, got_crc=0x%02X, exp_crc=0x%02X\n", (long)recv_len, packet.header, packet.crc, calculated_crc);
-    }
-
+    socklen_t len = sizeof(jetson_addr);
+    
+    ssize_t recv_len = recvfrom(sockfd, &packet, sizeof(packet), MSG_DONTWAIT, (struct sockaddr *) &jetson_addr, &len);
+    
     if (recv_len == sizeof(MotorPacket)) {
         if (!(packet.header & (1 << 7))) return false;
         uint8_t calculated_crc = crc8((uint8_t *)&packet, PAYLOAD_SIZE);
+        
         if (calculated_crc == packet.crc) {
             *command = unpack_motor_data(&packet);
             return true;
         }
-        else printf("CRC Mismatch: Expected 0x%02X, Got 0x%02X\n", calculated_crc, packet.crc);
     }
     return false;
 }
@@ -73,8 +71,8 @@ int init_connection(struct sockaddr_in *dest_addr, const char *ip, uint16_t port
     struct sockaddr_in local_addr;
     memset(&local_addr, 0, sizeof(local_addr));
     local_addr.sin_family = AF_INET;
-    local_addr.sin_addr.s_addr = INADDR_ANY; // Listen on all network interfaces
-    local_addr.sin_port = htons(port);       // Claim port 43137
+    local_addr.sin_addr.s_addr = INADDR_ANY; 
+    local_addr.sin_port = htons(port);       
 
     if (bind(sockfd, (struct sockaddr *)&local_addr, sizeof(local_addr)) < 0) {
         perror("Bind failed");

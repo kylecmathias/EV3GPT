@@ -8,4 +8,6 @@
 void* motor_listener(void* arg);
 void* motor_runner(void* arg);
 
+#define THREAD_SLEEP_U 100000
+
 #endif /* #ifndef TASKS_H */
