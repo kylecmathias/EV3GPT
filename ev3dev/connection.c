@@ -22,24 +22,28 @@ void pack_sensor_data(SensorPacket *packet, float gyro) {
 
 bool receive_motor_packet(int sockfd, MotorCommand *command) {
     MotorPacket packet;
-
-    struct sockaddr_in jetson_addr;
-    memset(&jetson_addr, 0, sizeof(jetson_addr));
-
-    socklen_t len = sizeof(jetson_addr);
     
-    ssize_t recv_len = recvfrom(sockfd, &packet, sizeof(packet), MSG_DONTWAIT, (struct sockaddr *) &jetson_addr, &len);
+    ssize_t recv_len = recv(sockfd, &packet, sizeof(packet), MSG_DONTWAIT);
     
-    if (recv_len == sizeof(MotorPacket)) {
-        if (!(packet.header & (1 << 7))) return false;
-        uint8_t calculated_crc = crc8((uint8_t *)&packet, PAYLOAD_SIZE);
-        
-        if (calculated_crc == packet.crc) {
-            *command = unpack_motor_data(&packet);
-            return true;
+    if (recv_len != sizeof(MotorPacket) || !(packet.header & (1 << 7))) {
+        if (recv_len == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
+            printf("Error receiving packet: %s\n", strerror(errno));
+            fflush(stdout);
         }
+        return false;
     }
-    return false;
+
+    uint8_t expected_crc = crc8((uint8_t *)&packet, PAYLOAD_SIZE);
+
+    if (expected_crc != packet.crc) {
+        printf("Expected crc: %u, got: %u\n", expected_crc, packet.crc);
+        fflush(stdout);
+        return false;
+    }
+
+    *command = unpack_motor_data(&packet);
+    if (IGNORE_NO_SYNC) command->sync = true;
+    return true;
 }
 
 MotorCommand unpack_motor_data(const MotorPacket *packet) {
@@ -53,15 +57,17 @@ MotorCommand unpack_motor_data(const MotorPacket *packet) {
     command.speeds[MOTOR_B] = packet->motor_b;
     command.speeds[MOTOR_C] = packet->motor_c;
     command.speeds[MOTOR_D] = packet->motor_d;
-    command.stop = packet->stop;
+    
+    command.stop = (packet->stop & STOP_MASK);
+    command.interrupt = (packet->stop & INTERRUPT_MASK) >> INTERRUPT_SHIFT;
 
     command.duration = ntohs(packet->duration);
 
     return command;
 }
 
-void send_sensor_packet(int sockfd, const SensorPacket *packet, struct sockaddr_in *dest_addr) {
-    sendto(sockfd, packet, sizeof(SensorPacket), 0, (struct sockaddr *)dest_addr, sizeof(*dest_addr));
+void send_sensor_packet(int sockfd, const SensorPacket *packet) {
+    if (send(sockfd, packet, sizeof(SensorPacket), 0) < 0) perror("Error sending packet");
 }
 
 int init_connection(struct sockaddr_in *dest_addr, const char *ip, uint16_t port) {
@@ -84,6 +90,12 @@ int init_connection(struct sockaddr_in *dest_addr, const char *ip, uint16_t port
     dest_addr->sin_port = htons(port);
 
     if (inet_pton(AF_INET, ip, &dest_addr->sin_addr) <= 0) {
+        return -1;
+    }
+
+    if (connect(sockfd, (struct sockaddr *)dest_addr, sizeof(*dest_addr)) < 0) {
+        perror("connect");
+        close(sockfd);
         return -1;
     }
 

@@ -3,3 +3,5 @@ ev3/ev3rt_headers/
 ev3/
 ev3dev/ev3key
 ev3dev/ev3key.pub
+ev3dev/drivers/
+*.sh

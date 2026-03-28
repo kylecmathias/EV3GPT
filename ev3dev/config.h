@@ -6,6 +6,7 @@
 #include <time.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <assert.h>
 
 #if defined(__linux__)
 #include <unistd.h>
@@ -20,11 +21,15 @@
 #include <fstream>
 #include <cstring>
 
-#define MOTOR_COMMAND_QUEUE_SIZE 3
+#define MOTOR_COMMAND_QUEUE_SIZE 8
 #define SLEEP_TIME_U 10000
-#define JETSON_ADDRESS "10.100.5.22" 
+#define JETSON_ADDRESS "10.100.5.24" 
 #define RECV_PORT 8888
+#define SLOWDOWN 1
 
-#define DIV_NS 1e9
+#define IGNORE_NO_SYNC false
+#define EMERGENCY_STOP 0x03
+
+#define DIV_NS 1e9f
 
 #endif /* #ifndef CONFIG_H */

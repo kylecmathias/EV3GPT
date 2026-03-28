@@ -1,6 +1,6 @@
 #include "ev3.h"
 
-int connect(const int sockfd) {
+int test_connection(const int sockfd) {
     std::cout << "Connecting to jetson" << std::endl;
 
     MotorCommand handshake;
@@ -29,30 +29,36 @@ int main() {
     ev3.initSensor(ULTRASONIC, SensorModes::Ultrasonic);
     ev3.initSensor(INFRARED, SensorModes::Infrared);
 
+    ev3.resetGyro();
+
     struct sockaddr_in jetson_addr;
     int sockfd = init_connection(&jetson_addr, JETSON_ADDRESS, RECV_PORT);
 
-    if (connect(sockfd) == -1) throw std::runtime_error("Connection to jetson timed out");
+    if (test_connection(sockfd) == CONNECT_FAIL) throw std::runtime_error("Connection to jetson timed out");
 
     pthread_t listener_tid, motor_runner_tid;
     pthread_create(&listener_tid, NULL, motor_listener, &sockfd);
     pthread_create(&motor_runner_tid, NULL, motor_runner, &ev3);
 
     uint8_t timestamp = 0;
+    SensorPacket pkt;
 
-    while (running) {
-        SensorPacket pkt;
-
+    while (running.load()) {
         pkt.header = 0x00 | (PORT_MASK & (ev3.getMask(SENSOR) << PORT_SHIFT)) | (GYRO_MASK & (GYRO_MODE << GYRO_SHIFT));
-        pkt.ultrasonic = (uint8_t) ev3.readSensor(SENSOR_3);
-        pkt.color = (uint8_t) static_cast<ColorID>(ev3.readSensor(COLOR));
+        pkt.ultrasonic = (uint8_t) ev3.readSensor(ULTRASONIC);
+        pkt.color = (uint8_t) (ev3.readSensor(COLOR));
         pkt.ir_prox = (uint8_t) ev3.readSensor(INFRARED, IR_PROX);
         pkt.ir_angle = (int8_t) ev3.readSensor(INFRARED, IR_ANGLE);
         pkt.timestamp = timestamp;
 
         pack_sensor_data(&pkt, (float) ev3.readSensor(GYRO));
-        send_sensor_packet(sockfd, &pkt, &jetson_addr);
+        send_sensor_packet(sockfd, &pkt);
         timestamp++;
-        usleep(SLEEP_TIME_U);
+        for (int i = 0; i < SLOWDOWN; i++) usleep(SLEEP_TIME_U);
     }
+
+    pthread_join(listener_tid, NULL);
+    pthread_join(motor_runner_tid, NULL);
+
+    close(sockfd);
 }

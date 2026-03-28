@@ -1,23 +1,31 @@
 #include "tasks.h"
 
 extern std::queue<MotorCommand> cmd_queue;
-extern std::atomic<bool> running;
 extern pthread_mutex_t queue_mutex;
+extern std::atomic<bool> running;
+extern pthread_cond_t queue_cond;
 
-struct timespec sleep_time = {0, 10000};
+std::atomic<bool> ignore;
+struct timespec sleep_time = {0, 50000};
 
 void* motor_listener(void* arg) {
     int sockfd = *(int*)arg;
     MotorCommand incoming;
+
     while (running) {
         if (receive_motor_packet(sockfd, &incoming)) {
             pthread_mutex_lock(&queue_mutex);
 
-            if (cmd_queue.size() >= MOTOR_COMMAND_QUEUE_SIZE) cmd_queue.pop();
-            cmd_queue.push(incoming);
+            if (!ignore.load() || incoming.stop == EMERGENCY_STOP) {
+                if (cmd_queue.size() >= MOTOR_COMMAND_QUEUE_SIZE) cmd_queue.pop();
+                cmd_queue.push(incoming);
+                pthread_cond_signal(&queue_cond);
+            }
+
             pthread_mutex_unlock(&queue_mutex);
         }
-        nanosleep(&sleep_time, NULL);
+
+        usleep(1000);
     }
     return NULL;
 }
@@ -25,21 +33,37 @@ void* motor_listener(void* arg) {
 void* motor_runner(void* arg) {
     Robot* ev3 = (Robot*)arg;
     MotorCommand current;
+
     while (running) {
         pthread_mutex_lock(&queue_mutex);
-        if (!cmd_queue.empty()) {
-            current = cmd_queue.front();
-            cmd_queue.pop();
 
+        while (cmd_queue.empty() && running.load()) {
+            pthread_cond_wait(&queue_cond, &queue_mutex);
+        }
+
+        if (!running.load()) {
             pthread_mutex_unlock(&queue_mutex);
-            
+            break;
+        }
+
+        current = cmd_queue.front();
+        cmd_queue.pop();
+
+        if (!current.sync) {
+            ignore = true;
+            while (!cmd_queue.empty()) cmd_queue.pop();
+        }
+
+        pthread_mutex_unlock(&queue_mutex);
+
+        try {
             ev3->executeMotorCommands(current);
         }
-        else pthread_mutex_unlock(&queue_mutex);
+        catch (...) {
+            std::cout << "Error executing commands\n";
+        }
 
-        
-
-        nanosleep(&sleep_time, NULL);
+        ignore = false;
     }
     return NULL;
 }
