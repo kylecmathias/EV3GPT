@@ -16,7 +16,7 @@ def crc8(data):
             crc &= 0xFF
     return crc
 
-def send_motor_command(sock, speeds=[0, 50, 25, 100], stop_mode=0x01):
+def send_motor_command(sock: socket.socket, speeds=[0, 50, 25, 100], stop_mode=0x01):
     header = 0xF9 
     duration = 0         
     

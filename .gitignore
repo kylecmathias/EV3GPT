@@ -6,3 +6,6 @@ ev3dev/ev3key.pub
 ev3dev/drivers/
 *.sh
 ev3dev/ev3
+jetson/storage
+jetson/dependencies
+__pycache__

@@ -33,7 +33,7 @@
 
 #ifndef PACKED
 #define PACKED __attribute__((packed))
-#endif  /* #ifdef PACKED */
+#endif  /* #ifndef PACKED */
 
 #ifdef __cplusplus
 extern "C" {

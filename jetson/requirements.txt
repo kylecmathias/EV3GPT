@@ -1,0 +1,26 @@
+# Core ML and Tensor Management
+torch>=2.6.0
+torchvision>=0.21.0
+safetensors>=0.5.0
+
+# Speech and Audio Processing
+faster-whisper>=1.2.0
+speechbrain>=1.0.3
+PyAudio>=0.2.14
+
+# Computer Vision and Face Analysis
+opencv-python>=4.13.0.92
+insightface>=0.7.3
+numpy>=1.26.0
+onnxruntime-gpu>=1.19.0
+
+# Asynchronous and Utilities
+janus>=0.9.0
+fastcrc>=0.3.5
+typing-extensions>=4.10.0
+
+# Depth Anything V2 Dependencies
+matplotlib>=3.8.0
+
+# LLM Stuff
+google-genai>=1.70.0

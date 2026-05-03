@@ -12,6 +12,5 @@ std::atomic<bool> running(true);
 pthread_cond_t queue_cond = PTHREAD_COND_INITIALIZER;
 
 int test_connection(const int sockfd);
-void signal_handler(int signum);
 
 #endif /* #ifndef EV3_H */

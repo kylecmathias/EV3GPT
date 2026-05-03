@@ -1,10 +1,16 @@
 from __future__ import annotations
-from abc import ABC, abstractmethod
 import asyncio
-from enum import Enum
 import janus
+from enum import Enum
+from abc import ABC, abstractmethod
 
 class CommandChainState(Enum):
+    """Enum for state of command chain\n
+    0: Idle\n
+    1: Running\n
+    2: Paused\n
+    3: Finished
+    """
     IDLE = 0
     RUNNING = 1
     PAUSED = 2
@@ -12,10 +18,10 @@ class CommandChainState(Enum):
 
 class CommandBlockBase(ABC):
     """
-    Sequential command block base class
+    Abstract command block class to be overridden
     """
     def __init__(self, **kwargs):
-        self._name = kwargs.get("name", "command") #name of the 
+        self._name = kwargs.get("name", "command") #name of the command
         self._action = kwargs.get("action", "")
         self._subject = kwargs.get("subject", "")
         self._conditions = kwargs.get("conditions", [])
@@ -24,30 +30,18 @@ class CommandBlockBase(ABC):
         self._stoppable = kwargs.get("stoppable", False)
         self._next = None
         self._stop = None
-    
-    def chain(self, other: "CommandBlockBase") -> None:
-        self._next = other
+
+    def next(self) -> int | None:
+        """Returns index of next command block, or None if current command block is last in chain"""
+        return self._next
 
     @abstractmethod
     async def execute(self) -> None:
-        pass
+        raise NotImplementedError("Cannot call execute() on CommandBlockBase class")
 
     @abstractmethod
     def end(self) -> None:
-        pass
-
-class CommandRoot(CommandBlockBase):
-    """
-    Root command block class does absolutely nothing other than point to the first command block
-    """
-    def __init__(self):
-        super().__init__(name="root")
-
-    async def execute(self) -> None:
-        raise NotImplementedError("Root block does not execute")
-    
-    def end(self) -> None:
-        raise NotImplementedError("Root block does not end")
+        raise NotImplementedError("Cannot call end() on CommandBlockBase class")
     
 class CommandBlock(CommandBlockBase):
     """
@@ -59,39 +53,27 @@ class CommandBlock(CommandBlockBase):
     async def execute(self) -> None:
         pass
 
+    def end(self) -> None:
+        pass
+
 class CommandChain:
     """
     Structure holding and tracking the command block chain
     """
     def __init__(self, loop=False, clear=False):
-        self._root = CommandRoot()
-        self._last = self._root
+        self._chain: list[CommandBlockBase] = []
         self._nodes = 0
         self._loop = loop
         self._state = CommandChainState.IDLE
-        self._clear = clear
+        self._clear = clear #clear on complete if not looping
 
-    def chain(self, block: CommandBlockBase):
-        self._last.chain(block)
-        self._last = block
+    def append(self, block: CommandBlockBase):
+        self._chain.append(block)
         self._nodes += 1
 
     async def run(self) -> None:
         if self._nodes <= 0:
             return
-        
-        self._state = CommandChainState.RUNNING
-        current = self._root._next
-
-        while current is not None and self._state == CommandChainState.RUNNING:
-            await current.execute()
-            if current._delay > 0:
-                await asyncio.sleep(current._delay)
-
-            current = current._next
-
-            if current is None and self._loop:
-                current = self._root._next
 
 class CommandQueue(janus.Queue):
     """

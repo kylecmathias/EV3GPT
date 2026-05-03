@@ -109,36 +109,15 @@ class Robot {
         MotorCommand current;
     private:
         void matchPorts();
-        
     public:
         Robot();
         ~Robot(); 
         void initSensor(int portIndex, SensorConfig config);
-        
         int readSensor(int portIndex, int valueIndex = 0); 
         void writeMotor(int portIndex, int speed);
         void executeMotorCommands(MotorCommand command);
         void resetGyro();
-
         smmask getMask(bool motor);
-};
-
-class Motor {
-    private:
-    public:
-        Motor();
-        ~Motor();
-        void updatePID(int32_t current_position);
-        void setTargetSpeed(int16_t speed_pct);
-};
-
-class Sensor {
-    private:
-    public:
-        Sensor();
-        ~Sensor();
-        bool isPressed();
-        int16_t getGyroAngle();
 };
 
 #endif /* #ifndef ROBOT_H */
