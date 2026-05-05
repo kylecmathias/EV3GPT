@@ -70,7 +70,7 @@ Written in C/C++ on ev3dev (embedded Linux). No EV3 SDK — motor and sensor con
 |---|---|---|
 | Object Detection | YOLOv8 | Planned |
 | Depth Estimation | Depth Anything V2 (ViT-S) | ✅ Implemented |
-| Traversability Segmentation | Custom UNet (distilled SAM) | Planned |
+| Traversability Segmentation | TinyUNet (distilled SAM) | ✅ Implemented |
 
 Depth maps run every other frame to reduce compute load. The three outputs are fused into a dynamic traversability map — combining what's there, how far it is, and whether the robot can drive over it. Camera mounting height is used to convert relative depth to real-world distance estimates.
 
