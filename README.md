@@ -3,6 +3,9 @@
 
 Ω Bot is an autonomous robot series built iteratively across three versions. v1 was a basic EV3 tank with a control loop. v2 added Bluetooth and a camera for wireless control. v3 — EV3GPT — offloads all AI and perception to an NVIDIA Jetson Orin Nano, turning the EV3 into an intelligent autonomous platform.
 
+<img width="3024" height="4032" alt="20260310_113626" src="https://github.com/user-attachments/assets/02eb9021-9318-4027-a0f0-7d85d628badf" />
+
+
 ---
 
 ## Architecture
@@ -26,6 +29,8 @@ The EV3 handles all time-sensitive hardware control. The Jetson handles all comp
 ---
 
 ## Communication Protocol
+
+The Jetson doesn't need to be mounted — all communication is over WiFi UDP
 
 Both sides speak the same custom 9-byte UDP packet format, validated with CRC8 (CDMA2000 polynomial). Struct sizes are verified at compile time with `static_assert`.
 
