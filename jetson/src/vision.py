@@ -1,4 +1,4 @@
-from dependencies import add_import, DAV2_PATH
+from dependencies import add_import, DAV2_PATH, DAV2_WEIGHTS
 add_import(DAV2_PATH)
 
 import asyncio
@@ -14,9 +14,6 @@ from depth_anything_v2.dpt import DepthAnythingV2
 device = "cuda" if torch.cuda.is_available() else "cpu"
 dav2_config = {'vits': {'encoder': 'vits', 'features': 64, 'out_channels': [48, 96, 192, 384]}}
 
-AI_FOLDER = Path(__file__).parent / "AI"
-DAV2_WEIGHTS = "depth_anything_v2_vits.pth"
-
 class Vision:
     """Class for the computer vision pipeline"""
     def __init__(self):
@@ -28,7 +25,7 @@ class Vision:
         self.latest_path = None
 
         self._dav2 = DepthAnythingV2(**dav2_config['vits'])
-        self._dav2.load_state_dict(torch.load(str(AI_FOLDER / DAV2_WEIGHTS), map_location=device))
+        self._dav2.load_state_dict(torch.load(DAV2_WEIGHTS, map_location=device))
         self._dav2 = self._dav2.to(device).eval()
 
         #TODO: Initialize yolo model and pathfinding model

@@ -10,13 +10,10 @@ from builder import chain_builder
 from camera import CameraStream
 from commands import CommandQueue
 from llm import LLMAgent
+from audio import AudioStream, audio_priority
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 compute_type = "int8_float16" if device == "cuda" else "int8"
-
-verification = SpeakerRecognition.from_hparams(source="speechbrain/spkrec-ecapa-voxceleb", run_opts={"device": device})
-if not verification:
-    raise ImportError("Failed to load speaker verification model")
 
 model, utils = torch.hub.load(repo_or_dir='snakers4/silero-vad', model='silero_vad', force_reload=False, onnx=True) # type: ignore
 (get_speech_timestamps, save_audio, read_audio, VADIterator, collect_chunks) = utils
@@ -98,7 +95,7 @@ class Interaction:
             return
         
         speak_text = response.get("speak", "")
-        has_command = response.get("command, False")
+        has_command = response.get("command", False)
 
         if speak_text:
             asyncio.create_task(self._speak(speak_text))
@@ -134,8 +131,8 @@ class Interaction:
             print(f"Speaker ID Error: {e}")
             return f"Error identifying speaker: {e}"
         
-    async def _speak(self, text: str) -> None:
-        raise NotImplementedError("Need to make tts on ev3 brick")
+    async def _speak(self, text: str, priority: int = audio_priority(2), interrupt: bool = False) -> None:
+        await AudioStream().speak(text, priority, interrupt)
 
     async def run_commands(self) -> None:
         """Consumer loop for the command queue — run as a concurrent task."""

@@ -5,7 +5,6 @@ import threading
 import pyaudio
 import time
 import janus 
-import asyncio
 
 import config
 from dependencies import secrets

@@ -80,7 +80,8 @@ class LLMAgent:
 
         if response.candidates and response.candidates[0].content and response.candidates[0].content.parts and response.candidates[0].content.parts[0].function_call:
             fn = response.candidates[0].content.parts[0].function_call
-            print(f"Executing function call: {fn.name} with {fn.args}")       
+            print(f"Executing function call: {fn.name} with {fn.args}")  
+            #TODO: Add function call     
 
         return response.text
 
