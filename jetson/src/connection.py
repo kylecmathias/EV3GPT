@@ -3,7 +3,6 @@ import struct
 import asyncio
 from dataclasses import dataclass
 from fastcrc import crc8
-from typing import AsyncGenerator
 
 #EV3->Jetson: [0: Header][1: US][2: Color][3: Gyro_H][4: Gyro_L][5: IR_Prox][6: IR_Angle][7: TS][8: CRC]
 #Jetson->EV3: [0: Header][1: Motor_A][2: Motor_B][3: Motor_C][4: Motor_D][5: Duration_H][6: Duration_L][7: STOP][8: CRC]
@@ -19,6 +18,7 @@ CRC_INIT = 0x00
 
 @dataclass
 class MotorCommand:
+    """Structure for outgoing motor commands"""
     header: int
     motor_a: int
     motor_b: int
@@ -74,7 +74,7 @@ class Connection:
             while True:
                 try:
                     data, addr = self._sock.recvfrom(PACKET_LEN)
-                    if len(data) == PACKET_LEN and crc8.cdma2000(data[:-1], CRC_INIT) == data[-1]:
+                    if len(data) == PACKET_LEN and crc8.cdma2000(data[:-1], CRC_INIT) == data[-1]: #stripped field is crc8
                         unpacked = struct.unpack(SENSOR_PACKET_FORMAT, data)
                         unpacked = unpacked[:-1]
 
@@ -120,4 +120,9 @@ class Connection:
             try:
                 return self._latest_data.get_nowait()
             except asyncio.QueueEmpty:
-                return None
+                return 
+            
+    def addr(self) -> str:
+        if not self._addr:
+            raise RuntimeError("EV3 connection not initialized, address DNE")
+        return self._addr

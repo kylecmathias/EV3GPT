@@ -40,6 +40,10 @@ int main() {
     pthread_create(&listener_tid, NULL, motor_listener, &sockfd);
     pthread_create(&motor_runner_tid, NULL, motor_runner, &ev3);
 
+    pthread_t audio_receiver_tid, audio_player_tid;
+    pthread_create(&audio_receiver_tid, NULL, audio_receiver, NULL);
+    pthread_create(&audio_player_tid, NULL, audio_player, NULL);
+
     uint8_t timestamp = 0;
     SensorPacket pkt;
 
@@ -59,6 +63,8 @@ int main() {
 
     pthread_join(listener_tid, NULL);
     pthread_join(motor_runner_tid, NULL);
+    pthread_join(audio_receiver_tid, NULL);
+    pthread_join(audio_player_tid, NULL);
 
     close(sockfd);
 }

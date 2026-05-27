@@ -5,6 +5,7 @@
 #include "connection.h"
 #include "robot.h"
 #include "tasks.h"
+#include "audio.h"
 
 std::queue<MotorCommand> cmd_queue;
 pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
