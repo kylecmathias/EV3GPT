@@ -193,9 +193,23 @@ class CommandQueue(janus.Queue):
     """
     Structure that holds multiple chains in a queue in order of creation
     """
+    _instance = None
+    _initialized = False
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(CommandQueue, cls).__new__(cls)
+        return cls._instance
+
     def __init__(self):
         super().__init__(maxsize=8)
         self._running_chain: CommandChain | None = None
+        self._running = False
+        self._initialized = True
+
+    def is_running(self) -> bool:
+        """Returns whether a chain is running"""
+        return self._running
 
     def clear_all(self) -> None:
         """Empties the queue and clears all chains"""
@@ -215,6 +229,7 @@ class CommandQueue(janus.Queue):
 
         if self._running_chain is None: return
 
+        self._running = True
         await self._running_chain.run()
 
         if self._running_chain._state == CommandChainState.FINISHED and self._running_chain._clear:
@@ -224,12 +239,14 @@ class CommandQueue(janus.Queue):
         """Pauses current chain after currently executing block is done and return block number that just executed"""
         if self._running_chain is not None:
             self._running_chain.pause()
+            self._running = False
             return self._running_chain._current
         return None
 
     async def resume(self) -> None:
         """Continues off from where current chain paused"""
         if self._running_chain is not None:
+            self._running = True
             self._running_chain.resume()
 
 

@@ -1,4 +1,4 @@
-import torch
+from torch import Tensor
 
-type OptionalTensor = torch.Tensor | None
+type OptionalTensor = Tensor | None
 type Secret = str | int | None

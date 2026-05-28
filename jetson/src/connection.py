@@ -122,6 +122,7 @@ class Connection:
             except asyncio.QueueEmpty:
                 return 
             
+    @property        
     def addr(self) -> str:
         if not self._addr:
             raise RuntimeError("EV3 connection not initialized, address DNE")
