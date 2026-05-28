@@ -1,5 +1,7 @@
-arm-linux-gnueabi-g++ -static -march=armv5te -O3 -fexceptions -fno-rtti -fno-threadsafe-statics -ffunction-sections -fdata-sections ev3.cpp robot.cpp tasks.cpp connection.c -o ev3 -Wl,--gc-sections -lpthread -lasound -s
+EV3_IP=10.100.5.19
 
-scp -i ~/ev3key ev3 robot@10.100.5.19:/home/robot/
+arm-linux-gnueabi-g++ -march=armv5te -O3 -fexceptions -fno-rtti -fno-threadsafe-statics -ffunction-sections -fdata-sections ev3.cpp robot.cpp tasks.cpp connection.c audio.cpp -o ev3 -Wl,--gc-sections -lpthread -lasound -s
 
-ssh -i ~/ev3key robot@10.100.5.19 "chmod +x /home/robot/ev3 && exit"
+scp -i ~/ev3key ev3 robot@$EV3_IP:/home/robot/
+
+ssh -i ~/ev3key robot@$EV3_IP "chmod +x /home/robot/ev3 && sudo setcap cap_sys_nice=ep /home/robot/ev3 && exit"

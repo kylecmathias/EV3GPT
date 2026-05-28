@@ -2,6 +2,7 @@
 #define AUDIO_H
 
 #include "config.h"
+#include "connection.h"
 #include <alsa/asoundlib.h>
 
 #define AUDIO_DEVICE "default"

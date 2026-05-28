@@ -41,6 +41,10 @@
 #define MOTOR_C_MASK 0x02U //0b0000 0010
 #define MOTOR_D_MASK 0x01U //0b0000 0001
 
+#define TREADS 0x06U //0b0000 0110
+#define REVERSE_TIME 0x05DCU //1500
+#define MAX_SPEED_REVERSE (int8_t)0x80 //-128
+
 #define SENSOR_MASK 0x0FU
 #define MOTOR_MASK 0xF0U
 
@@ -51,6 +55,11 @@
 #define CLEAR_STOP_MASK(mask, port) (mask &= ~(192U >> (2 * port)))
 #define SET_STOP_MASK(mask, port, stop) (mask = ((mask & ~(192U >> (2 * port))) | ((stop << 6) >> (2 *port)))) // 0b1100 0000 >> AA BB CC DD
 #define GET_STOP_STR(stop) (stop == 0x02 ? "hold\n" : (stop == 0x01 ? "brake\n" : "coast\n"))
+
+#define STOP_COMMAND {0x00, false, false, 0x0F, {0x00, 0x00, 0x00, 0x00}, 0x0000, 0x01} //0x00, nosync, nointerrupt, all ports, 0 speed, 0 duration, brake
+#define REVERSE_COMMAND {0x00, false, false, TREADS, {0x00, MAX_SPEED_REVERSE, MAX_SPEED_REVERSE, 0x00}, REVERSE_TIME, 0x01} //0x00, nosync, nointerrupt, ports B and C, -128 speed, 1500ms, brake
+
+#define GROUNDED_THRESHOLD 5
 
 constexpr const char* RUN_FOREVER_STR = "run-forever\n";
 constexpr size_t RUN_FOREVER_LEN = sizeof(RUN_FOREVER_STR) - 1;

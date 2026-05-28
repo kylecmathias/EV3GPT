@@ -87,7 +87,7 @@ void* audio_receiver(void* arg) {
     AudioPacket packet;
 
     while (running.load()) {
-        ssize_t len = recv(sockfd. &packet, sizeof(AudioPacket), 0);
+        ssize_t len = recv(sockfd, &packet, sizeof(AudioPacket), 0);
 
         if (len == sizeof(AudioPacket)) {
             if (packet.control & AUDIO_FLAG_FLUSH) {

@@ -11,6 +11,7 @@
 #if defined(__linux__)
 #include <unistd.h>
 #include <pthread.h>
+#include <sched.h>
 #endif /* #if defined(__linux__) */
 
 #include <iostream>
@@ -20,6 +21,7 @@
 #include <stdexcept>
 #include <fstream>
 #include <cstring>
+#include <condition_variable>
 
 #define MOTOR_COMMAND_QUEUE_SIZE 8
 #define SLEEP_TIME_U 10000
@@ -27,8 +29,10 @@
 
 #define IGNORE_NO_SYNC false
 #define EMERGENCY_STOP 0x03
+#define EMERGENCY_THREAD_PRIORITY 90
 
 #define DIV_NS 1e9f
+#define MUL_MS 1e3f
 
 #define JETSON_ADDRESS "10.100.5.24" 
 #define RECV_PORT 8888

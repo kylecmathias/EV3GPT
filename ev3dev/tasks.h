@@ -7,6 +7,7 @@
 
 void* motor_listener(void* arg);
 void* motor_runner(void* arg);
+void* emergency_reverse(void* arg);
 
 #define THREAD_SLEEP_U 100000
 

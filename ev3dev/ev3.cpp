@@ -31,14 +31,27 @@ int main() {
 
     ev3.resetGyro();
 
+    pthread_mutexattr_t mutex_attr;
+    pthread_mutexattr_init(&mutex_attr);
+    pthread_mutexattr_setprotocol(&mutex_attr, PTHREAD_PRIO_INHERIT);
+    pthread_mutex_init(&queue_mutex, &mutex_attr);
+    pthread_mutexattr_destroy(&mutex_attr);
+
     struct sockaddr_in jetson_addr;
     int sockfd = init_connection(&jetson_addr, JETSON_ADDRESS, RECV_PORT);
 
     if (test_connection(sockfd) == CONNECT_FAIL) throw std::runtime_error("Connection to jetson timed out");
 
-    pthread_t listener_tid, motor_runner_tid;
+    pthread_t listener_tid, motor_runner_tid, emergency_reverse_tid;
     pthread_create(&listener_tid, NULL, motor_listener, &sockfd);
     pthread_create(&motor_runner_tid, NULL, motor_runner, &ev3);
+    pthread_create(&emergency_reverse_tid, NULL, emergency_reverse, &ev3);
+
+    struct sched_param param;
+    param.sched_priority = EMERGENCY_THREAD_PRIORITY;
+    if (pthread_setschedparam(emergency_reverse_tid, SCHED_FIFO, &param) != 0) {
+        std::cerr << "Failed to set realtime priority for emergency_reverse" << std::endl;
+    }
 
     pthread_t audio_receiver_tid, audio_player_tid;
     pthread_create(&audio_receiver_tid, NULL, audio_receiver, NULL);
@@ -55,6 +68,16 @@ int main() {
         pkt.ir_angle = (int8_t) ev3.readSensor(INFRARED, IR_ANGLE);
         pkt.timestamp = timestamp;
 
+        if (pkt.color <= GROUNDED_THRESHOLD) {
+            pthread_mutex_lock(&queue_mutex);
+            grounded = false;
+            pthread_cond_signal(&stop_cond);
+            pthread_mutex_unlock(&queue_mutex);
+        }
+        else {
+            grounded = true;
+        }
+
         pack_sensor_data(&pkt, (float) ev3.readSensor(GYRO));
         send_sensor_packet(sockfd, &pkt);
         timestamp++;
@@ -63,8 +86,10 @@ int main() {
 
     pthread_join(listener_tid, NULL);
     pthread_join(motor_runner_tid, NULL);
+    pthread_join(emergency_reverse_tid, NULL);
     pthread_join(audio_receiver_tid, NULL);
     pthread_join(audio_player_tid, NULL);
 
+    pthread_mutex_destroy(&queue_mutex);
     close(sockfd);
 }

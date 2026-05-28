@@ -1,11 +1,13 @@
 #include "tasks.h"
 
 extern std::queue<MotorCommand> cmd_queue;
-extern pthread_mutex_t queue_mutex;
 extern std::atomic<bool> running;
+extern std::atomic<bool> grounded;
+extern pthread_mutex_t queue_mutex;
 extern pthread_cond_t queue_cond;
+extern pthread_cond_t stop_cond;
 
-std::atomic<bool> ignore;
+std::atomic<bool> ignore(false);
 struct timespec sleep_time = {0, 50000};
 
 void* motor_listener(void* arg) {
@@ -64,6 +66,38 @@ void* motor_runner(void* arg) {
         }
 
         ignore = false;
+    }
+    return NULL;
+}
+
+void* emergency_reverse(void* arg) {
+    Robot* ev3 = (Robot*)arg;
+
+    while (running) {
+        pthread_mutex_lock(&queue_mutex);
+
+        while (grounded.load() && running.load()) {
+            pthread_cond_wait(&stop_cond, &queue_mutex);
+        }
+
+        if (!running.load()) {
+            pthread_mutex_unlock(&queue_mutex);
+            break;
+        }
+
+        ignore.store(true);
+        while (!cmd_queue.empty()) cmd_queue.pop();
+        pthread_mutex_unlock(&queue_mutex);
+
+        MotorCommand cmd = REVERSE_COMMAND;
+        ev3->executeMotorCommands(cmd);
+
+        cmd = (MotorCommand)STOP_COMMAND;
+        ev3->executeMotorCommands(cmd);
+
+        while (!grounded.load()) usleep(SLEEP_TIME_U);
+
+        ignore.store(false);
     }
     return NULL;
 }
