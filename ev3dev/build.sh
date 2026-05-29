@@ -1,4 +1,4 @@
-EV3_IP=10.100.5.19
+EV3_IP=ev3gpt.local
 
 arm-linux-gnueabi-g++ -march=armv5te -O3 -fexceptions -fno-rtti -fno-threadsafe-statics -ffunction-sections -fdata-sections ev3.cpp robot.cpp tasks.cpp connection.c audio.cpp -o ev3 -Wl,--gc-sections -lpthread -lasound -s
 

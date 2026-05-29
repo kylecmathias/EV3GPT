@@ -34,7 +34,7 @@
 #define DIV_NS 1e9f
 #define MUL_MS 1e3f
 
-#define JETSON_ADDRESS "10.100.5.24" 
+#define JETSON_ADDRESS "jetson.local" 
 #define RECV_PORT 8888
 
 #define AUDIO_PORT 8889

@@ -1,1 +1,4 @@
-ssh -i ~/ev3key robot@10.100.5.19 "sudo -S /home/robot/ev3"
+EV3_IP=ev3gpt.local
+
+
+ssh -i ./ev3key robot@$EV3_IP "sudo -S /home/robot/ev3"
