@@ -56,17 +56,30 @@
 #define SET_STOP_MASK(mask, port, stop) (mask = ((mask & ~(192U >> (2 * port))) | ((stop << 6) >> (2 *port)))) // 0b1100 0000 >> AA BB CC DD
 #define GET_STOP_STR(stop) (stop == 0x02 ? "hold\n" : (stop == 0x01 ? "brake\n" : "coast\n"))
 
-#define STOP_COMMAND {0x00, false, false, 0x0F, {0x00, 0x00, 0x00, 0x00}, 0x0000, 0x01} //0x00, nosync, nointerrupt, all ports, 0 speed, 0 duration, brake
+#define STOP_COMMAND {0x00, false, false, 0x0F, {0x00, 0x00, 0x00, 0x00}, 0x00C8, 0x01} //0x00, nosync, nointerrupt, all ports, 0 speed, 0 duration, brake
 #define REVERSE_COMMAND {0x00, false, false, TREADS, {0x00, MAX_SPEED_REVERSE, MAX_SPEED_REVERSE, 0x00}, REVERSE_TIME, 0x01} //0x00, nosync, nointerrupt, ports B and C, -128 speed, 1500ms, brake
 
 #define GROUNDED_THRESHOLD 5
 
+#ifndef INT_MAX
+#define INT_MAX (int32_t)0x7FFFFFFF
+#endif /* #ifndef INT_MAX */
+#ifndef INT_MIN
+#define INT_MIN (-INT_MAX - 1)
+#endif /* #ifndef INT_MIN */
+#ifndef UINT_MAX
+#define UINT_MAX (uint32_t)0xFFFFFFFF
+#endif  /* #ifndef UINT_MAX */
+#ifndef UINT_MIN
+#define UINT_MIN (uint32_t)0x00000000
+#endif /* #ifndef UINT_MIN */
+#ifndef INT_MIN64
+#define INT_MIN64 0x80000000LL
+#endif /* #ifndef INT_MIN64 */
+
 constexpr const char* RUN_FOREVER_STR = "run-forever\n";
-constexpr size_t RUN_FOREVER_LEN = sizeof(RUN_FOREVER_STR) - 1;
 constexpr const char* RUN_DIRECT_STR = "run-direct\n";
-constexpr size_t RUN_DIRECT_LEN = sizeof(RUN_DIRECT_STR) - 1;
 constexpr const char* STOP_STR = "stop\n";
-constexpr size_t STOP_LEN = sizeof(STOP_STR) - 1;
 
 typedef uint8_t portmask;
 typedef char smmask;
@@ -128,5 +141,40 @@ class Robot {
         void resetGyro();
         smmask getMask(bool motor);
 };
+
+inline int asciitoint(const char *str) {
+    if (str == NULL) {
+        return 0;
+    }
+
+    int i = 0;
+    int sign = 1;
+    int64_t result = 0;
+
+    while (str[i] == ' ' || str[i] == '\t' || str[i] == '\n' || str[i] == '\r' || str[i] == '\v' || str[i] == '\f') {
+        i++;
+    }
+
+    if (str[i] == '-') {
+        sign = -1;
+        i++;
+    } 
+    else if (str[i] == '+') {
+        i++;
+    }
+
+    while (str[i] >= '0' && str[i] <= '9') {
+        result = result * 10 + (str[i] - '0');
+
+        if ((result >= (int64_t)INT_MAX + 1 && sign == 1) || (result >= (int64_t)INT_MAX && sign == -1)) {
+            return (sign == 1) ? INT_MAX : INT_MIN;
+        }
+        i++;
+    }
+
+    result *= sign;
+
+    return (int)result;
+}
 
 #endif /* #ifndef ROBOT_H */

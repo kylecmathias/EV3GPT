@@ -8,11 +8,16 @@ int test_connection(const int sockfd) {
 
     clock_gettime(CLOCK_MONOTONIC, &start);
 
+    SensorPacket spam_pack = {0};
+    pack_sensor_data(&spam_pack, 0.0f);
+
     while (!receive_motor_packet(sockfd, &handshake)) {
         clock_gettime(CLOCK_MONOTONIC, &current);
 
         double elapsed = (current.tv_sec - start.tv_sec) + (current.tv_nsec - start.tv_nsec) / DIV_NS;
         if (elapsed > CONNECT_TIMEOUT) return CONNECT_FAIL;
+
+        send_sensor_packet(sockfd, &spam_pack);
         
         usleep(THREAD_SLEEP_U);
     }

@@ -89,15 +89,22 @@ void* emergency_reverse(void* arg) {
         while (!cmd_queue.empty()) cmd_queue.pop();
         pthread_mutex_unlock(&queue_mutex);
 
-        MotorCommand cmd = REVERSE_COMMAND;
-        ev3->executeMotorCommands(cmd);
+        MotorCommand rev_cmd = REVERSE_COMMAND;
+        ev3->executeMotorCommands(rev_cmd);
 
-        cmd = (MotorCommand)STOP_COMMAND;
-        ev3->executeMotorCommands(cmd);
+        MotorCommand stop_cmd = STOP_COMMAND;
+        ev3->executeMotorCommands(stop_cmd);
 
-        while (!grounded.load()) usleep(SLEEP_TIME_U);
+        while (!grounded.load() && running.load()) usleep(SLEEP_TIME_U);
 
         ignore.store(false);
     }
     return NULL;
+}
+
+namespace std {
+    void __throw_bad_array_new_length() {
+        std::cerr << "FATAL: bad array new length" << std::endl;
+        std::terminate();
+    }
 }

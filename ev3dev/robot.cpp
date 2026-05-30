@@ -129,7 +129,7 @@ int Robot::readSensor(int portIndex, int valueIndex) {
     if (bytesRead > 0) {
         buf[bytesRead] = '\0';
         //std::cout << "Read from sensor " << (portIndex == 0 ? "Color" : portIndex == 1 ? "Gyro" : portIndex == 2 ? "Ultrasonic" : "Infrared") << ": " << buf << "\n";
-        return atoi(buf);
+        return asciitoint(buf);
     }
     std::cout << "Error reading sensor " << (portIndex == 0 ? "Color" : portIndex == 1 ? "Gyro" : portIndex == 2 ? "Ultrasonic" : "Infrared") << " at value:" << valueIndex << "\n";
     return -1;

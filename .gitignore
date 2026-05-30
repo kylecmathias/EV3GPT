@@ -11,4 +11,3 @@ jetson/dependencies
 __pycache__
 *secrets*
 *CodeRunner*
-libasound.so
