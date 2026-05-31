@@ -1,7 +1,7 @@
-#include "ev3.h"
+#include "ev3.hpp"
 
 int test_connection(const int sockfd) {
-    std::cout << "Connecting to jetson" << std::endl;
+    write(STDOUT_FILENO, "Connecting to jetson\n", 21);
 
     MotorCommand handshake;
     struct timespec start, current;
@@ -22,7 +22,7 @@ int test_connection(const int sockfd) {
         usleep(THREAD_SLEEP_U);
     }
 
-    std::cout << "Connected to jetson" << std::endl;
+    write(STDOUT_FILENO, "Connected to jetson\n", 20);
 
     return CONNECT_SUCCESS;
 }
@@ -36,16 +36,14 @@ int main() {
 
     ev3.resetGyro();
 
-    pthread_mutexattr_t mutex_attr;
-    pthread_mutexattr_init(&mutex_attr);
-    pthread_mutexattr_setprotocol(&mutex_attr, PTHREAD_PRIO_INHERIT);
-    pthread_mutex_init(&queue_mutex, &mutex_attr);
-    pthread_mutexattr_destroy(&mutex_attr);
+    sem_init(&queue_sem, 0, 0);
 
     struct sockaddr_in jetson_addr;
     int sockfd = init_connection(&jetson_addr, JETSON_ADDRESS, RECV_PORT);
 
-    if (test_connection(sockfd) == CONNECT_FAIL) throw std::runtime_error("Connection to jetson timed out");
+    if (test_connection(sockfd) == CONNECT_FAIL) {
+        throw std::runtime_error("Connection to jetson timed out");
+    }
 
     pthread_t listener_tid, motor_runner_tid, emergency_reverse_tid;
     pthread_create(&listener_tid, NULL, motor_listener, &sockfd);
@@ -74,13 +72,13 @@ int main() {
         pkt.timestamp = timestamp;
 
         if (pkt.color <= GROUNDED_THRESHOLD) {
-            pthread_mutex_lock(&queue_mutex);
-            grounded = false;
+            grounded.store(false, std::memory_order_release);
+            pthread_mutex_lock(&stop_mutex);
             pthread_cond_signal(&stop_cond);
-            pthread_mutex_unlock(&queue_mutex);
+            pthread_mutex_unlock(&stop_mutex);
         }
         else {
-            grounded = true;
+            grounded.store(true, std::memory_order_release);
         }
 
         pack_sensor_data(&pkt, (float) ev3.readSensor(GYRO));
@@ -95,6 +93,7 @@ int main() {
     pthread_join(audio_receiver_tid, NULL);
     pthread_join(audio_player_tid, NULL);
 
-    pthread_mutex_destroy(&queue_mutex);
+    sem_destroy(&queue_sem);
+    pthread_mutex_destroy(&stop_mutex);
     close(sockfd);
 }

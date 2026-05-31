@@ -1,45 +1,38 @@
-#ifndef CONNECTION_H
-#define CONNECTION_H
+#pragma once
 
-#include "config.h"
+#include "config.hpp"
 
+#if defined(__linux__)
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#endif /* #if defined(__linux__) */
 
-#define PACKET_SIZE 9 //includes crc
-#define PAYLOAD_SIZE (PACKET_SIZE - 1) //excludes crc
-#define CRC_INIT 0x00
-#define CONNECT_TIMEOUT 30U
-#define CONNECT_SUCCESS 1
-#define CONNECT_FAIL -1
-#define INET_NOFLAG 0
-#define GYRO_FP 16 //2^4
-#define MOTOR_A 0
-#define MOTOR_B 1
-#define MOTOR_C 2
-#define MOTOR_D 3
-#define PORT_SHIFT 6
-#define MTR_SHIFT 3
-#define GYRO_SHIFT 1
-#define UNIT_SHIFT 1
-#define INTERRUPT_SHIFT 7
-#define PORT_MASK 0x78U //0b0111 1000 
-#define UNIT_MASK 0x06U //0b0000 0110
-#define GYRO_MASK 0x06U //0b0000 0110
-#define STOP_MASK 0x03U //0b0000 0011
-#define SYNC_MASK 0x01U //0b0000 0001
-#define INTERRUPT_MASK 0x80U //0b1000 0000
+inline constexpr size_t PACKET_SIZE = 9; //includes crc
+inline constexpr size_t PAYLOAD_SIZE = PACKET_SIZE - 1; //excludes crc
+inline constexpr size_t COMMAND_SIZE = 11;
+inline constexpr uint8_t CRC_INIT = 0x00;
+inline constexpr uint8_t CONNECT_TIMEOUT = 30;
+inline constexpr int8_t CONNECT_SUCCESS = 0;
+inline constexpr int8_t CONNECT_FAIL = -1;
+inline constexpr int8_t GYRO_FP = 16; //2^4
+inline constexpr uint8_t PORT_SHIFT = 6;
+inline constexpr uint8_t MTR_SHIFT = 3;
+inline constexpr uint8_t GYRO_SHIFT = 1;
+inline constexpr uint8_t UNIT_SHIFT = 1;
+inline constexpr uint8_t INTERRUPT_SHIFT = 7;
+inline constexpr uint8_t PORT_MASK = 0x78; //0b0111 1000 
+inline constexpr uint8_t UNIT_MASK = 0x06; //0b0000 0110
+inline constexpr uint8_t GYRO_MASK = 0x06; //0b0000 0110
+inline constexpr uint8_t STOP_MASK = 0x03; //0b0000 0011
+inline constexpr uint8_t SYNC_MASK = 0x01; //0b0000 0001
+inline constexpr uint8_t INTERRUPT_MASK = 0x80; //0b1000 0000
 
 #ifndef PACKED
 #define PACKED __attribute__((packed))
 #endif  /* #ifndef PACKED */
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* #ifdef __cplusplus */
-
-typedef struct PACKED { //structure to hold packets for sensor data without padding
+struct PACKED SensorPacket { //structure to hold packets for sensor data without padding
     uint8_t header;
     uint8_t ultrasonic;
     uint8_t color;
@@ -48,9 +41,9 @@ typedef struct PACKED { //structure to hold packets for sensor data without padd
     int8_t ir_angle;
     uint8_t timestamp;
     uint8_t crc;
-} SensorPacket;
+};
 
-typedef struct PACKED { //structure to hold packets for motor data received
+struct PACKED MotorPacket { //structure to hold packets for motor data received
     uint8_t header;
     int8_t motor_a;
     int8_t motor_b;
@@ -59,9 +52,9 @@ typedef struct PACKED { //structure to hold packets for motor data received
     uint16_t duration; //big endian
     uint8_t stop;
     uint8_t crc;
-} MotorPacket;
+};
 
-typedef struct MotorCommand {
+struct MotorCommand {
     uint8_t unit;
     bool sync;
     bool interrupt;
@@ -69,7 +62,7 @@ typedef struct MotorCommand {
     int8_t speeds[4]; //speeds for motors A, B, C, D
     uint16_t duration; //duration for the motor command in milliseconds
     uint8_t stop; //0 for coast, 1 for brake, 2 for hold
-} MotorCommand; //structure to hold motor commands for sending
+}; //structure to hold motor commands for sending
 
 uint8_t crc8(const uint8_t *data, size_t len); //calculate crc8 checksum for data
 void pack_sensor_data(SensorPacket *packet, float gyro); //pack sensor data into a packet for sending
@@ -78,16 +71,5 @@ MotorCommand unpack_motor_data(const MotorPacket *packet); //unpack motor data f
 void send_sensor_packet(int sockfd, const SensorPacket *packet); //send sensor packet to jetson
 int init_connection(struct sockaddr_in *dest_addr, const char *ip, uint16_t port); //open a connection with the jetson
 
-#ifdef __cplusplus
 static_assert(sizeof(SensorPacket) == PACKET_SIZE, "SensorPacket size mismatch");
 static_assert(sizeof(MotorPacket) == PACKET_SIZE, "MotorPacket size mismatch");
-#else
-_Static_assert(sizeof(SensorPacket) == PACKET_SIZE, "SensorPacket size mismatch");
-_Static_assert(sizeof(MotorPacket) == PACKET_SIZE, "MotorPacket size mismatch");
-#endif /* #ifdef __cplusplus */
-
-#ifdef __cplusplus
-} // extern "C"
-#endif /* #ifdef __cplusplus */
-
-#endif /* #ifndef CONNECTION_H */ 

@@ -1,6 +1,6 @@
 EV3_IP=ev3gpt.local
 
-arm-linux-gnueabi-g++ -march=armv5te -O3 -fexceptions -fno-rtti -fno-threadsafe-statics -ffunction-sections -fdata-sections ev3.cpp robot.cpp tasks.cpp connection.c audio.cpp -o ev3 -Wl,--gc-sections -lpthread -lasound -s
+arm-linux-gnueabi-g++ -march=armv5te -O3 -fexceptions -fno-rtti -fno-threadsafe-statics -ffunction-sections -fdata-sections ev3.cpp robot.cpp tasks.cpp connection.cpp audio.cpp state.cpp -o ev3 -Wl,--gc-sections -lpthread -lasound -s
 
 scp -i ~/ev3key ev3 robot@$EV3_IP:/home/robot/
 

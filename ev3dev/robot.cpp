@@ -1,4 +1,4 @@
-#include "robot.h"
+#include "robot.hpp"
 
 Robot::Robot() {
     for (int i = 0; i < MAX_PORT; i++) {
@@ -9,9 +9,9 @@ Robot::Robot() {
            fds.sensors[i][j] = -1; 
         }
     }
-    active = 0x00U;
-    running = 0x00U;
-    stops = 0x00U;
+    active = 0x00;
+    running = 0x00;
+    stops = 0x00;
     matchPorts();
 }
 
@@ -38,7 +38,6 @@ void Robot::matchPorts() {
         if (addrFile.is_open()) {
             std::string addr;
             addrFile >> addr;
-            std::cout << "DEBUG: Found Motor Folder [" << i << "] with Address: [" << addr << "]" << std::endl;
             int idx = -1;
 
             if (addr.find("outA") != std::string::npos) idx = MOTOR_A;
@@ -69,7 +68,6 @@ void Robot::matchPorts() {
         if (addrFile.is_open()) {
             std::string addr;
             addrFile >> addr;
-            std::cout << "DEBUG: Found Sensor Folder [" << i << "] with Address: [" << addr << "]" << std::endl;
             int idx = -1;
 
             if (addr.find("in1") != std::string::npos) idx = SENSOR_1;
@@ -157,7 +155,7 @@ void Robot::executeMotorCommands(MotorCommand command) {
         writeMotor(MOTOR_A, current.speeds[MOTOR_A]);
         if (GET_STOP_MASK(stops, MOTOR_A) != command.stop) { 
             fd = fds.stop[MOTOR_A];
-            if (fd != -1 && dprintf(fd, GET_STOP_STR(command.stop)) >= 0) SET_STOP_MASK(stops, MOTOR_A, command.stop);
+            if (fd != -1 && dprintf(fd, "%s", GET_STOP_STR(command.stop)) >= 0) SET_STOP_MASK(stops, MOTOR_A, command.stop);
         }
     }
     if (current.ports & MOTOR_B_MASK) {
@@ -165,7 +163,7 @@ void Robot::executeMotorCommands(MotorCommand command) {
         writeMotor(MOTOR_B, current.speeds[MOTOR_B]);
         if (GET_STOP_MASK(stops, MOTOR_B) != command.stop) { 
             fd = fds.stop[MOTOR_B];
-            if (fd != -1 && dprintf(fd, GET_STOP_STR(command.stop)) >= 0) SET_STOP_MASK(stops, MOTOR_B, command.stop);
+            if (fd != -1 && dprintf(fd, "%s", GET_STOP_STR(command.stop)) >= 0) SET_STOP_MASK(stops, MOTOR_B, command.stop);
         }
     }
     if (current.ports & MOTOR_C_MASK) {
@@ -173,7 +171,7 @@ void Robot::executeMotorCommands(MotorCommand command) {
         writeMotor(MOTOR_C, current.speeds[MOTOR_C]);
         if (GET_STOP_MASK(stops, MOTOR_C) != command.stop) { 
             fd = fds.stop[MOTOR_C];
-            if (fd != -1 && dprintf(fd, GET_STOP_STR(command.stop)) >= 0) SET_STOP_MASK(stops, MOTOR_C, command.stop);
+            if (fd != -1 && dprintf(fd, "%s", GET_STOP_STR(command.stop)) >= 0) SET_STOP_MASK(stops, MOTOR_C, command.stop);
         }
     }
     if (current.ports & MOTOR_D_MASK) { 
@@ -181,7 +179,7 @@ void Robot::executeMotorCommands(MotorCommand command) {
         writeMotor(MOTOR_D, current.speeds[MOTOR_D]);
         if (GET_STOP_MASK(stops, MOTOR_D) != command.stop) { 
             fd = fds.stop[MOTOR_D];
-            if (fd != -1 && dprintf(fd, GET_STOP_STR(command.stop)) >= 0) SET_STOP_MASK(stops, MOTOR_D, command.stop);
+            if (fd != -1 && dprintf(fd, "%s", GET_STOP_STR(command.stop)) >= 0) SET_STOP_MASK(stops, MOTOR_D, command.stop);
         }
     }
     if (!current.sync) {
@@ -195,7 +193,7 @@ void Robot::executeMotorCommands(MotorCommand command) {
 void Robot::resetGyro() {
     if (fds.sensors[GYRO][0] == -1) return;
 
-    std::cout << "Calibrating Gyro, Keep the robot still." << std::endl;
+    write(STDOUT_FILENO, "Calibrating gyro\n", 17);
 
     initSensor(GYRO, SensorModes::GyroReset);
     
@@ -205,7 +203,7 @@ void Robot::resetGyro() {
     
     usleep(500000);
     
-    std::cout << "Gyro Zeroed." << std::endl;
+    write(STDOUT_FILENO, "Gyro calibrated\n", 17);
 }
 
 smmask Robot::getMask(bool motor) {
